@@ -476,3 +476,88 @@ html, body {
   font-weight: 500;
   color: var(--text-primary);
 }
+
+/* Slope angle controls */
+.top-left-slope {
+  top: calc(env(safe-area-inset-top, 12px) + 116px);
+  left: 12px;
+}
+
+.slope-panel {
+  position: absolute;
+  top: 0;
+  left: 52px;
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 10px 12px;
+  min-width: 140px;
+}
+
+.slope-panel.hidden {
+  display: none;
+}
+
+.slope-panel-header {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.slope-opacity-control {
+  margin-bottom: 10px;
+}
+
+.slope-opacity-label {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.slope-slider {
+  width: 100%;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--bg-light);
+  border-radius: 2px;
+  outline: none;
+}
+
+.slope-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid var(--bg-dark);
+}
+
+.slope-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.legend-color {
+  width: 12px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
