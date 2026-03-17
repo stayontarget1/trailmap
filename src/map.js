@@ -17,19 +17,18 @@ const LAYERS = {
     attribution: '© Esri',
     maxzoom: 19,
   },
-  // Labels overlay for hybrid mode
-  labels: {
-    type: 'raster',
-    tiles: [
-      'https://tile.opentopomap.org/{z}/{x}/{y}.png'
-    ],
-    tileSize: 256,
-    maxzoom: 17,
-  },
 };
+
+// CartoDB Positron labels-only — transparent background with geographic labels
+// (peaks, lakes, roads, towns, etc.) for use on top of satellite/hybrid
+const LABELS_TILES = [
+  'https://basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png'
+];
 
 let map;
 let currentLayer = 'topo';
+let followMode = false;
+let lastGpsLngLat = null;
 
 export function initMap() {
   map = new maplibregl.Map({
@@ -69,24 +68,69 @@ export function initMap() {
       attribution: LAYERS.satellite.attribution,
     });
 
-    // Labels overlay source (roads/trails on top of satellite)
+    // Labels overlay source — CartoDB labels-only (transparent bg, text labels for
+    // peaks, lakes, ridges, trails, roads, towns). Used on satellite and hybrid.
     map.addSource('labels-source', {
       type: 'raster',
-      tiles: [
-        'https://stamen-tiles.a.ssl.fastly.net/toner-lines/{z}/{x}/{y}.png'
-      ],
+      tiles: LABELS_TILES,
       tileSize: 256,
-      maxzoom: 17,
+      maxzoom: 19,
     });
 
-    map.addSource('label-text-source', {
-      type: 'raster',
-      tiles: [
-        'https://stamen-tiles.a.ssl.fastly.net/toner-labels/{z}/{x}/{y}.png'
-      ],
-      tileSize: 256,
-      maxzoom: 17,
+    // GPS dot as GeoJSON source + circle layer (WebGL, not DOM — no jitter on pinch-zoom)
+    map.addSource('gps-dot', {
+      type: 'geojson',
+      data: { type: 'Point', coordinates: [0, 0] },
     });
+
+    // Outer pulse ring
+    map.addLayer({
+      id: 'gps-dot-pulse',
+      type: 'circle',
+      source: 'gps-dot',
+      paint: {
+        'circle-radius': 18,
+        'circle-color': '#d97706',
+        'circle-opacity': 0.15,
+        'circle-stroke-width': 0,
+      },
+    });
+
+    // Inner dot
+    map.addLayer({
+      id: 'gps-dot-inner',
+      type: 'circle',
+      source: 'gps-dot',
+      paint: {
+        'circle-radius': 7,
+        'circle-color': '#d97706',
+        'circle-opacity': 1,
+        'circle-stroke-width': 2.5,
+        'circle-stroke-color': '#ffffff',
+      },
+    });
+
+    // Hide GPS layers until we have a position
+    map.setLayoutProperty('gps-dot-pulse', 'visibility', 'none');
+    map.setLayoutProperty('gps-dot-inner', 'visibility', 'none');
+  });
+
+  // Disable follow mode on any user interaction (pan, pinch-zoom, rotate)
+  map.on('dragstart', () => { setFollowMode(false); });
+  map.on('touchstart', (e) => {
+    // Multi-touch (pinch zoom) should disable follow
+    if (e.originalEvent && e.originalEvent.touches && e.originalEvent.touches.length > 1) {
+      setFollowMode(false);
+    }
+  });
+  // Also catch programmatic zoom from double-tap or buttons won't disable follow,
+  // but user-initiated zoom gestures will
+  map.on('zoomstart', (e) => {
+    if (e.originalEvent) {
+      // Only disable follow for user-initiated zooms (has originalEvent),
+      // not our own flyTo calls
+      setFollowMode(false);
+    }
   });
 
   initControls();
@@ -136,7 +180,7 @@ function initControls() {
     });
   });
 
-  // Locate me
+  // Locate me — tap to fly to position and enable follow mode
   document.getElementById('locate-btn').addEventListener('click', () => {
     locateUser();
   });
@@ -145,52 +189,68 @@ function initControls() {
 function switchLayer(layer) {
   currentLayer = layer;
 
-  // Remove existing layers
-  ['topo-layer', 'satellite-layer', 'labels-overlay', 'label-text-overlay'].forEach((id) => {
+  // Remove existing base/label layers
+  ['topo-layer', 'satellite-layer', 'labels-overlay'].forEach((id) => {
     if (map.getLayer(id)) map.removeLayer(id);
   });
 
+  // Find insertion point — add base layers below any route/GPS overlay layers
+  const beforeLayer = getFirstOverlayLayer();
+
   if (layer === 'topo') {
-    map.addLayer({ id: 'topo-layer', type: 'raster', source: 'topo-source' }, getFirstSymbolLayer());
+    // Topo tiles have labels baked in — no separate labels layer needed
+    map.addLayer({ id: 'topo-layer', type: 'raster', source: 'topo-source' }, beforeLayer);
   } else if (layer === 'satellite') {
-    map.addLayer({ id: 'satellite-layer', type: 'raster', source: 'satellite-source' }, getFirstSymbolLayer());
-  } else if (layer === 'hybrid') {
-    map.addLayer({ id: 'satellite-layer', type: 'raster', source: 'satellite-source' }, getFirstSymbolLayer());
+    // Satellite + label overlay so peaks/lakes/roads are visible
+    map.addLayer({ id: 'satellite-layer', type: 'raster', source: 'satellite-source' }, beforeLayer);
     map.addLayer({
       id: 'labels-overlay', type: 'raster', source: 'labels-source',
-      paint: { 'raster-opacity': 0.6 },
-    });
+      paint: { 'raster-opacity': 1 },
+    }, beforeLayer);
+  } else if (layer === 'hybrid') {
+    // Same as satellite — satellite base + labels on top
+    map.addLayer({ id: 'satellite-layer', type: 'raster', source: 'satellite-source' }, beforeLayer);
     map.addLayer({
-      id: 'label-text-overlay', type: 'raster', source: 'label-text-source',
-      paint: { 'raster-opacity': 0.8 },
-    });
+      id: 'labels-overlay', type: 'raster', source: 'labels-source',
+      paint: { 'raster-opacity': 1 },
+    }, beforeLayer);
   }
 }
 
-function getFirstSymbolLayer() {
+// Find the first non-base overlay layer (route lines, GPS dot, etc.)
+// so base layers are inserted below them
+function getFirstOverlayLayer() {
+  const baseLayers = new Set(['topo-layer', 'satellite-layer', 'labels-overlay']);
   const layers = map.getStyle().layers;
   for (const layer of layers) {
-    if (layer.type === 'symbol') return layer.id;
+    if (!baseLayers.has(layer.id)) return layer.id;
   }
   return undefined;
 }
 
 function locateUser() {
   const btn = document.getElementById('locate-btn');
-  btn.classList.add('active');
 
-  if (!navigator.geolocation) {
-    btn.classList.remove('active');
+  if (!navigator.geolocation) return;
+
+  // If we already have a GPS position, fly there and enable follow
+  if (lastGpsLngLat) {
+    setFollowMode(true);
+    map.flyTo({ center: lastGpsLngLat, zoom: Math.max(map.getZoom(), 15), duration: 1000 });
     return;
   }
+
+  // First locate — request position
+  btn.classList.add('active');
 
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       const { latitude, longitude, accuracy } = pos.coords;
-      map.flyTo({ center: [longitude, latitude], zoom: 15, duration: 1000 });
+      const lngLat = [longitude, latitude];
 
-      // Show position marker
       showGpsPosition(longitude, latitude, accuracy);
+      setFollowMode(true);
+      map.flyTo({ center: lngLat, zoom: 15, duration: 1000 });
       btn.classList.remove('active');
     },
     (err) => {
@@ -201,7 +261,20 @@ function locateUser() {
   );
 }
 
+// Update follow mode state and button appearance
+function setFollowMode(enabled) {
+  followMode = enabled;
+  const btn = document.getElementById('locate-btn');
+  btn.classList.toggle('active', enabled);
+}
+
+export function isFollowMode() {
+  return followMode;
+}
+
 export function showGpsPosition(lng, lat, accuracy) {
+  lastGpsLngLat = [lng, lat];
+
   // Accuracy circle as GeoJSON
   const circle = createCircle([lng, lat], accuracy);
 
@@ -220,27 +293,16 @@ export function showGpsPosition(lng, lat, accuracy) {
     });
   }
 
-  // GPS dot marker
-  if (!map._gpsDotMarker) {
-    const el = document.createElement('div');
-    el.className = 'gps-dot';
+  // Update GPS dot position (GeoJSON circle layer — rendered in WebGL, rock-solid during zoom)
+  if (map.getSource('gps-dot')) {
+    map.getSource('gps-dot').setData({ type: 'Point', coordinates: [lng, lat] });
+    map.setLayoutProperty('gps-dot-pulse', 'visibility', 'visible');
+    map.setLayoutProperty('gps-dot-inner', 'visibility', 'visible');
+  }
 
-    const pulseEl = document.createElement('div');
-    pulseEl.className = 'gps-dot-pulse';
-    pulseEl.style.position = 'absolute';
-    pulseEl.style.top = '0';
-    pulseEl.style.left = '0';
-
-    const wrapper = document.createElement('div');
-    wrapper.style.position = 'relative';
-    wrapper.appendChild(pulseEl);
-    wrapper.appendChild(el);
-
-    map._gpsDotMarker = new maplibregl.Marker({ element: wrapper })
-      .setLngLat([lng, lat])
-      .addTo(map);
-  } else {
-    map._gpsDotMarker.setLngLat([lng, lat]);
+  // If follow mode is on, keep map centered on GPS position
+  if (followMode) {
+    map.easeTo({ center: [lng, lat], duration: 500 });
   }
 }
 

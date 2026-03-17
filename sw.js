@@ -76,7 +76,7 @@ function isTileRequest(url) {
     url.includes('tile.opentopomap.org') ||
     url.includes('arcgisonline.com') ||
     url.includes('caltopo.com/tile') ||
-    url.includes('stamen-tiles')
+    url.includes('basemaps.cartocdn.com')
   );
 }
 
