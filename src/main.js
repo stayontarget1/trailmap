@@ -1,7 +1,15 @@
 // App entry point
 import { initMap } from './map.js';
+import { initUI } from './ui.js';
+import { openDB } from './db.js';
 
-const map = initMap();
+async function init() {
+  await openDB();
+  initMap();
+  initUI();
+}
+
+init();
 
 // Register service worker for PWA/offline support
 if ('serviceWorker' in navigator) {
