@@ -752,3 +752,236 @@ html, body {
 .hidden {
   display: none !important;
 }
+
+/* Library button */
+.top-left-library {
+  top: calc(env(safe-area-inset-top, 12px) + 228px);
+  left: 12px;
+}
+
+/* Library overlay */
+.library-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-darkest);
+  z-index: 50;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.library-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px;
+  padding-top: calc(env(safe-area-inset-top, 16px) + 16px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 16px) + 16px);
+}
+
+.library-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.library-title {
+  font-family: var(--font-sans);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.library-toolbar {
+  margin-bottom: 16px;
+}
+
+.library-filters {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.library-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.lib-action-btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-light);
+  border: 1px solid var(--control-border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.lib-action-btn:hover {
+  background: var(--bg-mid);
+  color: var(--text-primary);
+}
+
+/* Route card */
+.route-card {
+  background: var(--bg-dark);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.route-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.route-card-name {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-card-badges {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.status-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.status-badge.planned {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.status-badge.completed {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.class-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(217, 119, 6, 0.15);
+  color: var(--accent);
+}
+
+.route-card-stats {
+  display: flex;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.route-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--bg-light);
+  color: var(--text-secondary);
+}
+
+.route-card-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.route-card-btn {
+  flex: 1;
+  padding: 6px;
+  background: var(--bg-light);
+  border: 1px solid var(--control-border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.route-card-btn:hover {
+  background: var(--bg-mid);
+  color: var(--text-primary);
+}
+
+.route-card-btn.load-route:hover {
+  border-color: var(--accent-dim);
+  color: var(--accent);
+}
+
+.route-card-btn.delete-route:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* Edit form */
+.edit-form {
+  padding: 4px;
+}
+
+.edit-form-title {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.cache-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 8px 10px;
+  background: var(--bg-mid);
+  border: 1px solid var(--control-border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  outline: none;
+  resize: vertical;
+}
+
+.cache-textarea:focus {
+  border-color: var(--accent-dim);
+}
+
+.edit-form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}

@@ -4,12 +4,14 @@ import { initUI } from './ui.js';
 import { openDB } from './db.js';
 import { initSlope } from './slope.js';
 import { initCacheUI } from './cache.js';
+import { initLibrary } from './library.js';
 
 async function init() {
   await openDB();
   const map = initMap();
   initUI();
   initCacheUI();
+  initLibrary();
 
   // Init slope angle shading after map loads (needs sources ready)
   map.on('load', () => {
