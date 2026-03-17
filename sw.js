@@ -75,7 +75,7 @@ function isTileRequest(url) {
   return (
     url.includes('tile.opentopomap.org') ||
     url.includes('arcgisonline.com') ||
-    url.includes('caltopo.com/tile')
+    url.includes('elevation-tiles-prod')
   );
 }
 

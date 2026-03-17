@@ -22,9 +22,9 @@ const TILE_SOURCES = {
     urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     maxZoom: 19,
   },
-  slope: {
-    urlTemplate: 'https://caltopo.com/tile/sf/{z}/{x}/{y}.png',
-    maxZoom: 16,
+  terrain: {
+    urlTemplate: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
+    maxZoom: 15,
   },
 };
 
