@@ -19,10 +19,12 @@ const LAYERS = {
   },
 };
 
-// CartoDB Positron labels-only — transparent background with geographic labels
-// (peaks, lakes, roads, towns, etc.) for use on top of satellite/hybrid
+// OpenTopoMap overlay for satellite/hybrid — same tile source as topo mode,
+// rendered at low opacity so peak names, elevations, lake names, pass names,
+// saddle names, ridgeline names, and all geographic feature labels show through
+// on top of satellite imagery. Guarantees exact label parity with topo view.
 const LABELS_TILES = [
-  'https://basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png'
+  'https://tile.opentopomap.org/{z}/{x}/{y}.png'
 ];
 
 let map;
@@ -68,13 +70,13 @@ export function initMap() {
       attribution: LAYERS.satellite.attribution,
     });
 
-    // Labels overlay source — CartoDB labels-only (transparent bg, text labels for
-    // peaks, lakes, ridges, trails, roads, towns). Used on satellite and hybrid.
+    // OpenTopoMap overlay source — same tiles as topo, rendered at low opacity
+    // over satellite so all geographic labels (peaks, lakes, passes, etc.) are visible
     map.addSource('labels-source', {
       type: 'raster',
       tiles: LABELS_TILES,
       tileSize: 256,
-      maxzoom: 19,
+      maxzoom: 17,
     });
 
     // GPS dot as GeoJSON source + circle layer (WebGL, not DOM — no jitter on pinch-zoom)
@@ -201,18 +203,18 @@ function switchLayer(layer) {
     // Topo tiles have labels baked in — no separate labels layer needed
     map.addLayer({ id: 'topo-layer', type: 'raster', source: 'topo-source' }, beforeLayer);
   } else if (layer === 'satellite') {
-    // Satellite + label overlay so peaks/lakes/roads are visible
+    // Satellite + subtle topo overlay for peak/lake/pass labels
     map.addLayer({ id: 'satellite-layer', type: 'raster', source: 'satellite-source' }, beforeLayer);
     map.addLayer({
       id: 'labels-overlay', type: 'raster', source: 'labels-source',
-      paint: { 'raster-opacity': 1 },
+      paint: { 'raster-opacity': 0.3 },
     }, beforeLayer);
   } else if (layer === 'hybrid') {
-    // Same as satellite — satellite base + labels on top
+    // Satellite + stronger topo overlay — more visible labels and contours
     map.addLayer({ id: 'satellite-layer', type: 'raster', source: 'satellite-source' }, beforeLayer);
     map.addLayer({
       id: 'labels-overlay', type: 'raster', source: 'labels-source',
-      paint: { 'raster-opacity': 1 },
+      paint: { 'raster-opacity': 0.55 },
     }, beforeLayer);
   }
 }

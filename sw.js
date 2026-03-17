@@ -1,7 +1,7 @@
 // Service worker for offline PWA support
 // Handles app shell caching and tile serving from IndexedDB
 
-const CACHE_NAME = 'trailmap-v2';
+const CACHE_NAME = 'trailmap-v3';
 const APP_SHELL = [
   './',
   './index.html',
@@ -75,8 +75,7 @@ function isTileRequest(url) {
   return (
     url.includes('tile.opentopomap.org') ||
     url.includes('arcgisonline.com') ||
-    url.includes('caltopo.com/tile') ||
-    url.includes('basemaps.cartocdn.com')
+    url.includes('caltopo.com/tile')
   );
 }
 
