@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#0a0a0a"/>
+  <g transform="translate(256,256)">
+    <!-- Mountain peaks -->
+    <polygon points="-120,80 -40,-60 0,-20 60,-80 120,80" fill="none" stroke="#d97706" stroke-width="16" stroke-linejoin="round"/>
+    <!-- Trail line -->
+    <path d="M-80,80 Q-40,40 0,60 Q40,80 80,40" fill="none" stroke="#e5e5e5" stroke-width="8" stroke-linecap="round"/>
+    <!-- Location dot -->
+    <circle cx="0" cy="-80" r="12" fill="#d97706"/>
+  </g>
+</svg>
