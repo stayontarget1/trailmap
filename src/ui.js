@@ -1,13 +1,17 @@
-// UI: panels, bottom sheets, drag-and-drop, route info display
+// UI: panels, bottom sheets, drag-and-drop, route info display, tracking HUD
 
 import { importGPX, getActiveRoute, calcRouteStats, drawElevationProfile, formatDistance, formatElevation, parseGPX } from './gpx.js';
+import { startTracking, stopTracking, isTracking } from './gps.js';
 
 let routePanel = null;
+let trackingHud = null;
 
 export function initUI() {
   createRouteInfoPanel();
+  createTrackingHud();
   initDragDrop();
   initFileInput();
+  initTrackingButton();
 }
 
 function createRouteInfoPanel() {
@@ -29,7 +33,6 @@ function createRouteInfoPanel() {
   `;
   document.body.appendChild(routePanel);
 
-  // Close button
   document.getElementById('close-route-panel').addEventListener('click', () => {
     routePanel.classList.remove('open');
   });
@@ -62,6 +65,117 @@ function createRouteInfoPanel() {
       routePanel.style.transform = '';
     }
   });
+}
+
+function createTrackingHud() {
+  trackingHud = document.createElement('div');
+  trackingHud.className = 'tracking-hud hidden';
+  trackingHud.id = 'tracking-hud';
+  trackingHud.innerHTML = `
+    <div class="hud-progress">
+      <div class="hud-progress-bar" id="hud-progress-bar"></div>
+    </div>
+    <div class="hud-stats" id="hud-stats">
+      <div class="hud-stat">
+        <span class="hud-label">DONE</span>
+        <span class="hud-value" id="hud-dist-done">--</span>
+      </div>
+      <div class="hud-stat">
+        <span class="hud-label">LEFT</span>
+        <span class="hud-value" id="hud-dist-left">--</span>
+      </div>
+      <div class="hud-stat">
+        <span class="hud-label">ELEV</span>
+        <span class="hud-value" id="hud-elev">--</span>
+      </div>
+      <div class="hud-stat">
+        <span class="hud-label">SPEED</span>
+        <span class="hud-value" id="hud-speed">--</span>
+      </div>
+      <div class="hud-stat">
+        <span class="hud-label">ETA</span>
+        <span class="hud-value" id="hud-eta">--</span>
+      </div>
+      <div class="hud-stat">
+        <span class="hud-label">GAIN+</span>
+        <span class="hud-value" id="hud-gain">--</span>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(trackingHud);
+}
+
+function initTrackingButton() {
+  const trackBtn = document.createElement('div');
+  trackBtn.className = 'map-control top-left-below';
+  trackBtn.innerHTML = `
+    <button id="track-btn" class="control-btn" title="Start tracking">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <polygon points="10,8 16,12 10,16" fill="currentColor" stroke="none"/>
+      </svg>
+    </button>
+  `;
+  document.body.appendChild(trackBtn);
+
+  const btn = document.getElementById('track-btn');
+  btn.addEventListener('click', () => {
+    if (isTracking()) {
+      stopTracking();
+      btn.classList.remove('active');
+      btn.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <polygon points="10,8 16,12 10,16" fill="currentColor" stroke="none"/>
+        </svg>
+      `;
+      trackingHud.classList.add('hidden');
+    } else {
+      btn.classList.add('active');
+      btn.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <rect x="9" y="9" width="6" height="6" fill="currentColor" stroke="none"/>
+        </svg>
+      `;
+      trackingHud.classList.remove('hidden');
+
+      startTracking((position, progress) => {
+        updateTrackingHud(position, progress);
+      });
+    }
+  });
+}
+
+function updateTrackingHud(position, progress) {
+  if (!progress) {
+    // No route loaded — show basic GPS info
+    const ele = position.altitude ? formatElevation(position.altitude) : '--';
+    const speed = position.speed > 0 ? `${(position.speed * 2.237).toFixed(1)}mph` : '--';
+    document.getElementById('hud-dist-done').textContent = '--';
+    document.getElementById('hud-dist-left').textContent = '--';
+    document.getElementById('hud-elev').textContent = ele;
+    document.getElementById('hud-speed').textContent = speed;
+    document.getElementById('hud-eta').textContent = '--';
+    document.getElementById('hud-gain').textContent = '--';
+    document.getElementById('hud-progress-bar').style.width = '0%';
+    return;
+  }
+
+  document.getElementById('hud-dist-done').textContent = formatDistance(progress.distCompleted);
+  document.getElementById('hud-dist-left').textContent = formatDistance(progress.distRemaining);
+  document.getElementById('hud-elev').textContent = progress.currentEle !== null ? formatElevation(progress.currentEle) : '--';
+  document.getElementById('hud-speed').textContent = progress.currentSpeed > 0 ? `${(progress.currentSpeed * 2.237).toFixed(1)}mph` : '--';
+  document.getElementById('hud-eta').textContent = progress.etaSeconds ? formatDuration(progress.etaSeconds) : '--';
+  document.getElementById('hud-gain').textContent = `+${formatElevation(progress.eleGainSoFar)}`;
+  document.getElementById('hud-progress-bar').style.width = `${Math.min(100, progress.pctComplete)}%`;
+}
+
+function formatDuration(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h}h${m}m`;
+  return `${m}m`;
 }
 
 export function showRouteInfo(route) {
@@ -98,7 +212,6 @@ export function showRouteInfo(route) {
 
   routePanel.classList.add('open');
 
-  // Draw elevation profile after panel is visible
   requestAnimationFrame(() => {
     const canvas = document.getElementById('elevation-canvas');
     drawElevationProfile(canvas, route.trackpoints, stats.distances);
@@ -150,7 +263,6 @@ function initDragDrop() {
 }
 
 function initFileInput() {
-  // Add import button to the UI
   const importBtn = document.createElement('div');
   importBtn.className = 'map-control top-left';
   importBtn.innerHTML = `
