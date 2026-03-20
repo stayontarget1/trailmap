@@ -139,6 +139,12 @@ export function initMap() {
   initScaleBar();
   initCoords();
 
+  // Auto-locate on launch — center on user's position like Google/Apple Maps.
+  // Fires immediately; getCurrentPosition is async so map renders the default
+  // view while waiting. If permission is denied or unavailable, silently falls
+  // back to the default Sierra Nevada view.
+  autoLocate();
+
   return map;
 }
 
@@ -228,6 +234,24 @@ function getFirstOverlayLayer() {
     if (!baseLayers.has(layer.id)) return layer.id;
   }
   return undefined;
+}
+
+// Auto-locate on app launch — request position and fly there silently
+function autoLocate() {
+  if (!navigator.geolocation) return;
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const { latitude, longitude, accuracy } = pos.coords;
+      showGpsPosition(longitude, latitude, accuracy);
+      setFollowMode(true);
+      map.flyTo({ center: [longitude, latitude], zoom: 13, duration: 1500 });
+    },
+    () => {
+      // Permission denied or unavailable — stay on default view, no error shown
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
 }
 
 function locateUser() {
